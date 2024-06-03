@@ -69,6 +69,28 @@ class PointNetFeat(nn.Module):
 
         # point-wise mlp
         # TODO : Implement point-wise mlp model based on PointNet Architecture.
+        self.pw_mlp = nn.Sequential(
+                nn.Linear(3, 64),
+                nn.BatchNorm1d(64),
+                nn.ReLU(),
+                nn.Linear(64, 64),
+                nn.BatchNorm1d(64),
+                nn.ReLU(),
+        )
+        
+        self.pw_mlp2 = nn.Sequential(
+            nn.Linear(64, 64),
+            nn.BatchNorm1d(64),
+            nn.ReLU(),
+            nn.Linear(64, 128),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
+            nn.Linear(128, 1024),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(),
+        )
+        
+        self.max_pool = nn.MaxPool1d(1024)
 
     def forward(self, pointcloud):
         """
@@ -80,7 +102,24 @@ class PointNetFeat(nn.Module):
         """
 
         # TODO : Implement forward function.
-        pass
+        features = self.stn3(pointcloud)
+        
+        B, N, _ = features.shape
+        features = features.view(B * N, -1)  # Reshape to apply MLP to each point
+        features = self.pw_mlp(features)
+        features = features.view(B, N, -1)  # Reshape back
+        
+        # Another transformation
+        features = self.stn64(features)
+        
+        # Apply another point-wise MLP
+        features = features.view(B * N, -1)
+        features = self.pw_mlp2(features)
+        features = features.view(B, N, -1)
+        
+        out, _ = torch.max(features, dim=1)
+        
+        return out
 
 
 class PointNetCls(nn.Module):
@@ -133,6 +172,7 @@ class PointNetAutoEncoder(nn.Module):
 
         # Decoder is just a simple MLP that outputs N x 3 (x,y,z) coordinates.
         # TODO : Implement decoder.
+        
 
     def forward(self, pointcloud):
         """
