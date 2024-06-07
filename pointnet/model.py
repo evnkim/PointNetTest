@@ -90,7 +90,7 @@ class PointNetFeat(nn.Module):
             nn.ReLU(),
         )
         
-        self.max_pool = nn.MaxPool1d(1024)
+        # self.max_pool = nn.MaxPool1d(1024)
 
     def forward(self, pointcloud):
         """
@@ -132,6 +132,16 @@ class PointNetCls(nn.Module):
         
         # returns the final logits from the max-pooled features.
         # TODO : Implement MLP that takes global feature as an input and return logits.
+        self.classify = nn.Sequential(
+            nn.Linear(1024, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(),
+            nn.Linear(512, 256),
+            nn.BatchNorm1d(256),
+            nn.ReLU(),
+            nn.Dropout(p=0.5),
+            nn.Linear(256, num_classes),
+        )
 
     def forward(self, pointcloud):
         """
@@ -142,7 +152,10 @@ class PointNetCls(nn.Module):
             - ...
         """
         # TODO : Implement forward function.
-        pass
+        x = self.pointnet_feat(pointcloud)
+        logits = self.classify(x)
+        
+        return logits
 
 
 class PointNetPartSeg(nn.Module):
@@ -151,7 +164,8 @@ class PointNetPartSeg(nn.Module):
 
         # returns the logits for m part labels each point (m = # of parts = 50).
         # TODO: Implement part segmentation model based on PointNet Architecture.
-        pass
+        
+        
 
     def forward(self, pointcloud):
         """

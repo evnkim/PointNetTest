@@ -20,9 +20,9 @@ def step(points, labels, model):
     """
     
     # TODO : Implement step function for classification.
-
-    loss = None
-    preds = None
+    preds = model(points)
+    loss =  F.cross_entropy(preds, labels)
+    
     return loss, preds
 
 
@@ -31,6 +31,9 @@ def train_step(points, labels, model, optimizer, train_acc_metric):
     train_batch_acc = train_acc_metric(preds, labels.to(device))
 
     # TODO : Implement backpropagation using optimizer and loss
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
 
     return loss, train_batch_acc
 
