@@ -102,28 +102,31 @@ class PointNetFeat(nn.Module):
         """
 
         # TODO : Implement forward function.
+        print(pointcloud.shape)
         if(self.input_transform):
-            pointcloud = pointcloud.transpose(1, 2)
-            pointcloud = self.stn3(pointcloud)
-            pointcloud = pointcloud.transpose(1, 2)
+            transform = self.stn3(pointcloud.transpose(1,2))
+            pointcloud = torch.matmul(pointcloud, transform)
+
+        print(pointcloud.shape)
         
         B, N, _ = pointcloud.shape
-        pointcloud = pointcloud.view(B * N, -1)  # Reshape to apply MLP to each point
+        pointcloud = pointcloud.reshape((B * N, 3))  # Reshape to apply MLP to each point
         pointcloud = self.pw_mlp(pointcloud)
-        features = pointcloud.view(B, N, -1)  # Reshape back
+        features = pointcloud.reshape((B, N, 64)) # Reshape back
         
         # Another transformation
         if(self.feature_transform):
-            features = features.transpose(1, 2)
-            features = self.stn64(features)
-            features = features.transpose(1, 2)
+            transform = self.stn64(features.transpose(1,2))
+            features = torch.matmul(features, transform)
         
         # Apply another point-wise MLP
-        features = features.view(B * N, -1)
+        features = features.reshape((B * N, 64))
         features = self.pw_mlp2(features)
-        features = features.view(B, N, -1)
+        features = features.reshape((B, N, 1024))
         
         out, _ = torch.max(features, dim=1)
+
+        print(out.shape)
         
         return out
 
@@ -223,9 +226,9 @@ class PointNetPartSeg(nn.Module):
         pointcloud = pointcloud.transpose(1, 2)
         
         B, N, _ = pointcloud.shape
-        pointcloud = pointcloud.view(B * N, -1)  # Reshape to apply MLP to each point
+        pointcloud = pointcloud.reshape((B * N, -1))  # Reshape to apply MLP to each point
         pointcloud = self.pw_mlp(pointcloud)
-        features = pointcloud.view(B, N, -1)  # Reshape back
+        features = pointcloud.reshape((B, N, -1))  # Reshape back
         
         # Another transformation
         features = features.transpose(1, 2)
@@ -233,17 +236,17 @@ class PointNetPartSeg(nn.Module):
         features = features.transpose(1, 2)
         
         # Apply another point-wise MLP
-        features = features.view(B * N, -1)
+        features = features.reshape((B * N, -1))
         features = self.pw_mlp2(features)
-        features = features.view(B, N, -1)
+        features = features.reshape((B, N, -1))
         
         global_feature, _ = torch.max(features, dim=1)
         
         concat_feature = torch.cat((features, global_feature.unsqueeze(1).repeat(1, N, 1)), dim=2)
         
-        concat_feature = concat_feature.view(B * N, -1)
+        concat_feature = concat_feature.reshape((B * N, -1))
         concat_feature = self.seg_mlp(concat_feature)
-        logits = concat_feature.view(B,N,-1)
+        logits = concat_feature.reshape((B,N,-1))
         logits = logits.permute(0, 2, 1)
         
         return logits
@@ -284,7 +287,7 @@ class PointNetAutoEncoder(nn.Module):
         # TODO : Implement forward function.
         encoding = self.pointnet_feat(pointcloud)
         decode = self.decoder(encoding)
-        decode = decode.view(-1, pointcloud.shape[1], 3)
+        decode = decode.reshape(-1, pointcloud.shape[1], 3)
         return decode
 
 
