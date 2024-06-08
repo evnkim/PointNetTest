@@ -52,7 +52,7 @@ def main(args):
     model = PointNetCls(num_classes=40, input_transform=True, feature_transform=True)
     model = model.to(device)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    optimizer =     .optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(
         optimizer, milestones=[30, 80], gamma=0.5
     )

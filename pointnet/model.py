@@ -102,15 +102,17 @@ class PointNetFeat(nn.Module):
         """
 
         # TODO : Implement forward function.
-        features = self.stn3(pointcloud)
+        if(self.input_transform):
+            pointcloud = self.stn3(pointcloud)
         
-        B, N, _ = features.shape
-        features = features.view(B * N, -1)  # Reshape to apply MLP to each point
-        features = self.pw_mlp(features)
-        features = features.view(B, N, -1)  # Reshape back
+        B, N, _ = pointcloud.shape
+        pointcloud = pointcloud.view(B * N, -1)  # Reshape to apply MLP to each point
+        pointcloud = self.pw_mlp(pointcloud)
+        features = pointcloud.view(B, N, -1)  # Reshape back
         
         # Another transformation
-        features = self.stn64(features)
+        if(self.feature_transform):
+            features = self.stn64(features)
         
         # Apply another point-wise MLP
         features = features.view(B * N, -1)
@@ -164,6 +166,42 @@ class PointNetPartSeg(nn.Module):
 
         # returns the logits for m part labels each point (m = # of parts = 50).
         # TODO: Implement part segmentation model based on PointNet Architecture.
+        self.stn3 = STNKd(k=3)
+        self.stn64 = STNKd(k=64)
+
+        self.pw_mlp = nn.Sequential(
+                nn.Linear(3, 64),
+                nn.BatchNorm1d(64),
+                nn.ReLU(),
+                nn.Linear(64, 64),
+                nn.BatchNorm1d(64),
+                nn.ReLU(),
+        )
+        
+        self.pw_mlp2 = nn.Sequential(
+            nn.Linear(64, 64),
+            nn.BatchNorm1d(64),
+            nn.ReLU(),
+            nn.Linear(64, 128),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
+            nn.Linear(128, 1024),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(),
+        )
+        
+        self.seg_mlp = nn.Sequential(
+            nn.Linear(1088, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(),
+            nn.Linear(512, 256),
+            nn.BatchNorm1d(256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
+            nn.Linear(128, m),
+        )
         
         
 
@@ -176,7 +214,33 @@ class PointNetPartSeg(nn.Module):
             - ...
         """
         # TODO: Implement forward function.
-        pass
+        pointcloud = self.stn3(pointcloud)
+        
+        B, N, _ = pointcloud.shape
+        pointcloud = pointcloud.view(B * N, -1)  # Reshape to apply MLP to each point
+        pointcloud = self.pw_mlp(pointcloud)
+        features = pointcloud.view(B, N, -1)  # Reshape back
+        
+        # Another transformation
+        features = self.stn64(features)
+        
+        # Apply another point-wise MLP
+        features = features.view(B * N, -1)
+        features = self.pw_mlp2(features)
+        features = features.view(B, N, -1)
+        
+        global_feature, _ = torch.max(features, dim=1)
+        
+        concat_feature = torch.cat((features, global_feature.unsqueeze(1).repeat(1, N, 1)), dim=2)
+        
+        concat_feature = concat_feature.view(B * N, -1)
+        concat_feature = self.seg_mlp(concat_feature)
+        logits = concat_feature.view(B,N,-1)
+        logits = logits.permute(0, 2, 1)
+        
+        return logits
+        
+        
 
 
 class PointNetAutoEncoder(nn.Module):
