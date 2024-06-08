@@ -250,6 +250,19 @@ class PointNetAutoEncoder(nn.Module):
 
         # Decoder is just a simple MLP that outputs N x 3 (x,y,z) coordinates.
         # TODO : Implement decoder.
+        self.decoder = nn.Sequential(
+            nn.Linear(1024, num_points / 4),
+            nn.BatchNorm1d(num_points / 4),
+            nn.ReLU(),
+            nn.Linear(num_points / 4, num_points / 2),
+            nn.BatchNorm1d(num_points / 2),
+            nn.ReLU(),
+            nn.Linear(num_points / 2, num_points),
+            nn.Dropout(p=0.5),
+            nn.BatchNorm1d(num_points),
+            nn.ReLU(),
+            nn.Linear(num_points, num_points * 3),
+        )
         
 
     def forward(self, pointcloud):
@@ -261,7 +274,10 @@ class PointNetAutoEncoder(nn.Module):
             - ...
         """
         # TODO : Implement forward function.
-        pass
+        encoding = self.pointnet_feat(pointcloud)
+        decode = self.decoder(encoding)
+        decode = decode.view(-1, pointcloud.shape[1], 3)
+        return decode
 
 
 def get_orthogonal_loss(feat_trans, reg_weight=1e-3):
