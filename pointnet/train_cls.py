@@ -52,7 +52,7 @@ def main(args):
     model = PointNetCls(num_classes=40, input_transform=True, feature_transform=True)
     model = model.to(device)
 
-    optimizer =     .optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(
         optimizer, milestones=[30, 80], gamma=0.5
     )
@@ -88,6 +88,7 @@ def main(args):
         pbar = tqdm(train_dl)
         train_epoch_loss = []
         for points, labels in pbar:
+            points, labels = points.to(device), labels.to(device)
             train_batch_loss, train_batch_acc = train_step(
                 points, labels, model, optimizer, train_acc_metric
             )

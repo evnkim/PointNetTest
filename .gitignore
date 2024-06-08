@@ -32,3 +32,6 @@ share/python-wheels/
 *.egg
 .ipynb_checkpoints
 test/
+
+.DS_Store
+*.zip

@@ -103,7 +103,9 @@ class PointNetFeat(nn.Module):
 
         # TODO : Implement forward function.
         if(self.input_transform):
+            pointcloud = pointcloud.transpose(1, 2)
             pointcloud = self.stn3(pointcloud)
+            pointcloud = pointcloud.transpose(1, 2)
         
         B, N, _ = pointcloud.shape
         pointcloud = pointcloud.view(B * N, -1)  # Reshape to apply MLP to each point
@@ -112,7 +114,9 @@ class PointNetFeat(nn.Module):
         
         # Another transformation
         if(self.feature_transform):
+            features = features.transpose(1, 2)
             features = self.stn64(features)
+            features = features.transpose(1, 2)
         
         # Apply another point-wise MLP
         features = features.view(B * N, -1)
@@ -214,7 +218,9 @@ class PointNetPartSeg(nn.Module):
             - ...
         """
         # TODO: Implement forward function.
+        pointcloud = pointcloud.transpose(1, 2)
         pointcloud = self.stn3(pointcloud)
+        pointcloud = pointcloud.transpose(1, 2)
         
         B, N, _ = pointcloud.shape
         pointcloud = pointcloud.view(B * N, -1)  # Reshape to apply MLP to each point
@@ -222,7 +228,9 @@ class PointNetPartSeg(nn.Module):
         features = pointcloud.view(B, N, -1)  # Reshape back
         
         # Another transformation
+        features = features.transpose(1, 2)
         features = self.stn64(features)
+        features = features.transpose(1, 2)
         
         # Apply another point-wise MLP
         features = features.view(B * N, -1)
