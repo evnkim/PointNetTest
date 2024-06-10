@@ -27,9 +27,9 @@ def step(points, pc_labels, class_labels, model):
     # TODO : Implement step function for segmentation.
 
     logits = model(points)
-    logits = logits.permute(0, 2, 1)
-    preds = torch.argmax(logits, dim = 2)
-    loss = F.crossentropy(preds, pc_labels)
+    logits2 = logits.permute(0, 2, 1)
+    preds = torch.argmax(logits2, dim = 2)
+    loss = F.cross_entropy(logits, pc_labels)
     
     return loss, logits, preds
 
